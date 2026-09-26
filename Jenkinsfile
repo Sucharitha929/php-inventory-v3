@@ -9,7 +9,7 @@ pipeline {
         K8S_NAMESPACE = 'inventory'
 
         // Docker Hub
-        DOCKERHUB_REPO = 'balakrishnasetlem/php-inventory'
+        DOCKERHUB_REPO = 'sucharitha929/php-inventory'
         IMAGE_TAG = "${BUILD_NUMBER}"
         DOCKER_IMAGE = "${DOCKERHUB_REPO}:${IMAGE_TAG}"
 
@@ -162,7 +162,7 @@ pipeline {
 
                     docker build \
                         -t ${DOCKER_IMAGE} \
-                        -t ${DOCKERHUB_REPO}:latest \
+                        -t ${DOCKERHUB_REPO}:v3 \
                         .
                 '''
             }
@@ -206,7 +206,7 @@ pipeline {
 
                     docker push ${DOCKER_IMAGE}
 
-                    docker push ${DOCKERHUB_REPO}:latest
+                    docker push ${DOCKERHUB_REPO}:v3
 
                     docker logout
                 '''
