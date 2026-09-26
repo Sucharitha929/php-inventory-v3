@@ -1,0 +1,159 @@
+pipeline {
+    agent any
+
+    environment {
+        APP_NAME = 'php-inventory'
+        DOCKERHUB_REPO = 'balakrishnasetlem/php-inventory'
+        IMAGE = "${DOCKERHUB_REPO}:${BUILD_NUMBER}"
+    }
+
+    stages {
+
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Install Dependencies') {
+            steps {
+                sh '''
+                    composer install \
+                    --no-interaction \
+                    --prefer-dist
+                '''
+            }
+        }
+
+        stage('Compile / Lint') {
+            steps {
+                sh '''
+                    find app -name "*.php" -print0 |
+                    xargs -0 -n1 php -l
+                '''
+            }
+        }
+
+        stage('Build') {
+            steps {
+                sh 'bash scripts/build.sh'
+            }
+        }
+
+        stage('Unit Test') {
+            steps {
+                sh '''
+                    vendor/bin/phpunit \
+                    --testdox \
+                    --log-junit test-results.xml
+                '''
+            }
+        }
+
+        stage('Package') {
+            steps {
+                sh '''
+                    BUILD_VERSION=${BUILD_NUMBER} \
+                    bash scripts/package.sh
+                '''
+
+                archiveArtifacts artifacts: 'dist/*.tar.gz',
+                    fingerprint: true
+            }
+        }
+
+        stage('Install Package') {
+            steps {
+                sh '''
+                    rm -rf workspace-install
+                    mkdir workspace-install
+
+                    tar -xzf dist/*.tar.gz \
+                    -C workspace-install
+
+                    php -l workspace-install/app/public/index.php
+                '''
+            }
+        }
+
+        stage('Docker Build') {
+            steps {
+                sh '''
+                    docker build \
+                    -t ${IMAGE} .
+                '''
+            }
+        }
+
+        stage('Docker Login') {
+            steps {
+                withCredentials([
+                    usernamePassword(
+                        credentialsId: 'dockerhub-credentials',
+                        usernameVariable: 'DOCKER_USERNAME',
+                        passwordVariable: 'DOCKER_PASSWORD'
+                    )
+                ]) {
+                    sh '''
+                        echo "$DOCKER_PASSWORD" |
+                        docker login \
+                        -u "$DOCKER_USERNAME" \
+                        --password-stdin
+                    '''
+                }
+            }
+        }
+
+        stage('Push to Docker Hub') {
+            steps {
+                sh '''
+                    docker push ${IMAGE}
+
+                    docker tag ${IMAGE} \
+                    ${DOCKERHUB_REPO}:latest
+
+                    docker push ${DOCKERHUB_REPO}:latest
+                '''
+            }
+        }
+
+        stage('Docker Image Check') {
+            steps {
+                sh '''
+                    docker images ${DOCKERHUB_REPO}
+                '''
+            }
+        }
+    }
+
+    post {
+
+        always {
+            junit allowEmptyResults: true,
+                testResults: 'test-results.xml'
+        }
+
+        success {
+            echo """
+            ==========================================
+            CI/CD PIPELINE SUCCESS
+            ==========================================
+
+            Application : ${APP_NAME}
+            Image       : ${IMAGE}
+            Docker Hub  : ${DOCKERHUB_REPO}:${BUILD_NUMBER}
+            Latest      : ${DOCKERHUB_REPO}:latest
+
+            ==========================================
+            """
+        }
+
+        failure {
+            echo 'CI/CD pipeline failed.'
+        }
+
+        cleanup {
+            sh 'docker logout || true'
+        }
+    }
+}

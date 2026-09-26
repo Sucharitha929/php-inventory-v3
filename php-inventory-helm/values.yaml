@@ -1,0 +1,33 @@
+replicaCount: 3
+
+image:
+  repository: balakrishnasetlem/php-inventory
+  tag: latest
+  pullPolicy: Always
+
+service:
+  type: LoadBalancer
+  port: 80
+  targetPort: 80
+
+  annotations:
+    service.beta.kubernetes.io/aws-load-balancer-type: "external"
+    service.beta.kubernetes.io/aws-load-balancer-scheme: "internet-facing"
+    service.beta.kubernetes.io/aws-load-balancer-nlb-target-type: "instance"
+
+containerPort: 80
+
+database:
+  secretName: php-inventory-db
+
+rdsCA:
+  secretName: rds-ca
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+
+  limits:
+    cpu: 500m
+    memory: 512Mi

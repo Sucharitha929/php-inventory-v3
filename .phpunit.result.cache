@@ -1,0 +1,1 @@
+{"version":2,"defects":[],"times":{"InventoryTests\\AuthTest::testValidCredentialsAuthenticate":0.446,"InventoryTests\\AuthTest::testInvalidPasswordFails":0.451,"InventoryTests\\InventoryTest::testAddReceiveAndIssue":0.001}}

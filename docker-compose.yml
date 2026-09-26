@@ -1,0 +1,14 @@
+services:
+  php-inventory:
+    build: .
+    container_name: php-inventory
+    ports:
+      - "8080:80"
+    environment:
+      APP_NAME: K-15 Inventory
+      DB_PATH: /var/www/html/app/storage/inventory.sqlite
+    volumes:
+      - inventory_data:/var/www/html/app/storage
+    restart: unless-stopped
+volumes:
+  inventory_data:
