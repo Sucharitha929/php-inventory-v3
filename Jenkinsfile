@@ -46,6 +46,9 @@ pipeline {
                     composer install \
                         --no-interaction \
                         --prefer-dist
+
+                    chmod +x vendor/bin/*
+
                 '''
             }
         }
